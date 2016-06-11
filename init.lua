@@ -36,6 +36,7 @@ local function force_detach(player)
 		player:set_detach()
 	end
 	default.player_attached[player:get_player_name()] = false
+	player:set_eye_offset({x=0, y=0, z=0}, {x=0, y=0, z=0})
 end
 
 -------------------------------------------------------------------------------
@@ -62,10 +63,12 @@ end)
 
 lib_mount = {}
 
-function lib_mount.attach(entity, player, attach_at)
+function lib_mount.attach(entity, player, attach_at, eye_offset)
+	eye_offset = eye_offset or {x=0, y=0, z=0}
 	force_detach(player)
 	entity.driver = player
 	player:set_attach(entity.object, "", attach_at, {x=0, y=0, z=0})
+	player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
 	default.player_attached[player:get_player_name()] = true
 	minetest.after(0.2, function()
 		default.player_set_animation(player, "sit" , 30)
@@ -78,6 +81,7 @@ function lib_mount.detach(entity, player, offset)
 	player:set_detach()
 	default.player_attached[player:get_player_name()] = false
 	default.player_set_animation(player, "stand" , 30)
+	player:set_eye_offset({x=0, y=0, z=0}, {x=0, y=0, z=0})
 	local pos = player:getpos()
 	pos = {x = pos.x + offset.x, y = pos.y + 0.2 + offset.y, z = pos.z + offset.z}
 	minetest.after(0.1, function()
