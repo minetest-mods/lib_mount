@@ -188,6 +188,7 @@ function lib_mount.drive(entity, dtime, moving_anim, stand_anim, can_fly)
 	end
 	if can_fly and can_fly == true and ctrl.jump then 
 		new_velo.y = new_velo.y + 0.75
+		new_acce.y = new_acce.y + 1
 	end
 	entity.object:setvelocity(new_velo)
 	entity.object:setacceleration(new_acce)
