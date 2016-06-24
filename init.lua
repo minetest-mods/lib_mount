@@ -1,3 +1,9 @@
+
+local mobs_redo = false
+if mobs.mod and mobs.mod == "redo" then
+	mobs_redo = true
+end
+
 --
 -- Helper functions
 --
@@ -68,6 +74,9 @@ function lib_mount.attach(entity, player, attach_at, eye_offset)
 	force_detach(player)
 	entity.driver = player
 	player:set_attach(entity.object, "", attach_at, {x=0, y=0, z=0})
+	
+	player:set_properties({visual_size = {x=1, y=1}})
+	
 	player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
 	default.player_attached[player:get_player_name()] = true
 	minetest.after(0.2, function()
@@ -89,7 +98,7 @@ function lib_mount.detach(entity, player, offset)
 	end)
 end
 
-function lib_mount.drive(entity, dtime, moving_anim, still_anim)
+function lib_mount.drive(entity, dtime, moving_anim, stand_anim, can_fly)
 	entity.v = get_v(entity.object:getvelocity()) * get_sign(entity.v)
 	
 	local ctrl = entity.driver:get_player_control()
@@ -115,11 +124,15 @@ function lib_mount.drive(entity, dtime, moving_anim, still_anim)
 	
 	local velo = entity.object:getvelocity()
 	if entity.v == 0 and velo.x == 0 and velo.y == 0 and velo.z == 0 then
-		set_animation(entity, still_anim)
+		if stand_anim and stand_anim ~= nil and mobs_redo == true then
+			set_animation(entity, stand_anim)
+		end
 		entity.object:setpos(entity.object:getpos())
 		return
 	end
-	set_animation(entity, moving_anim)
+	if moving_anim and moving_anim ~= nil and mobs_redo == true then
+		set_animation(entity, moving_anim)
+	end
 	local s = get_sign(entity.v)
 	entity.v = entity.v - 0.02 * s
 	if s ~= get_sign(entity.v) then
@@ -172,6 +185,9 @@ function lib_mount.drive(entity, dtime, moving_anim, still_anim)
 				entity.object:setpos(entity.object:getpos())
 			end
 		end
+	end
+	if can_fly and can_fly == true and ctrl.jump then 
+		new_velo.y = new_velo.y + 0.75
 	end
 	entity.object:setvelocity(new_velo)
 	entity.object:setacceleration(new_acce)
