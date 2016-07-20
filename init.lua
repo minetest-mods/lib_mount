@@ -69,6 +69,8 @@ end)
 
 lib_mount = {}
 
+local half_a_pie = math.pi/2
+
 function lib_mount.attach(entity, player, attach_at, eye_offset)
 	eye_offset = eye_offset or {x=0, y=0, z=0}
 	force_detach(player)
@@ -82,7 +84,7 @@ function lib_mount.attach(entity, player, attach_at, eye_offset)
 	minetest.after(0.2, function()
 		default.player_set_animation(player, "sit" , 30)
 	end)
-	entity.object:setyaw(player:get_look_yaw() - math.pi / 2)
+	entity.object:setyaw(player:get_look_yaw() - half_a_pie)
 end
 
 function lib_mount.detach(entity, player, offset)
@@ -98,36 +100,57 @@ function lib_mount.detach(entity, player, offset)
 	end)
 end
 
-function lib_mount.drive(entity, dtime, moving_anim, stand_anim, can_fly)
-	entity.v = get_v(entity.object:getvelocity()) * get_sign(entity.v)
-	
+function lib_mount.drive(entity, dtime, moving_anim, stand_anim, jump_height, can_fly)
+	if can_fly and can_fly == true then
+		jump_height = 0
+	end
+
+	local velo = entity.object:getvelocity()
+	entity.v = get_v(velo) * get_sign(entity.v)
+
 	local ctrl = entity.driver:get_player_control()
-	local yaw = entity.object:getyaw()
 	if ctrl.up then
 		entity.v = entity.v + 0.1
 	elseif ctrl.down then
 		entity.v = entity.v - 0.1
 	end
-	if ctrl.left then
-		if entity.v < 0 then
-			entity.object:setyaw(yaw - (1 + dtime) * 0.03)
-		else
-			entity.object:setyaw(yaw + (1 + dtime) * 0.03)
-		end
-	elseif ctrl.right then
-		if entity.v < 0 then
-			entity.object:setyaw(yaw + (1 + dtime) * 0.03)
-		else
-			entity.object:setyaw(yaw - (1 + dtime) * 0.03)
+
+	if ctrl.aux1 then
+		entity.object:setyaw(entity.driver:get_look_yaw() - half_a_pie)
+	else
+		local yaw = entity.object:getyaw()
+		if ctrl.left then
+			if entity.v < 0 then
+				entity.object:setyaw(yaw - (1 + dtime) * 0.03)
+			else
+				entity.object:setyaw(yaw + (1 + dtime) * 0.03)
+			end
+		elseif ctrl.right then
+			if entity.v < 0 then
+				entity.object:setyaw(yaw + (1 + dtime) * 0.03)
+			else
+				entity.object:setyaw(yaw - (1 + dtime) * 0.03)
+			end
 		end
 	end
-	
-	local velo = entity.object:getvelocity()
+
+	local acce_y = 0
+	if ctrl.jump then
+		if jump_height > 0 and velo.y == 0 then
+			velo.y = velo.y + (jump_height * 3) + 1
+			acce_y = acce_y + (acce_y * 3) + 1
+		end
+		if can_fly and can_fly == true then
+			velo.y = velo.y + 1
+			acce_y = acce_y + 1
+		end
+	end
+
 	if entity.v == 0 and velo.x == 0 and velo.y == 0 and velo.z == 0 then
 		if stand_anim and stand_anim ~= nil and mobs_redo == true then
 			set_animation(entity, stand_anim)
 		end
-		entity.object:setpos(entity.object:getpos())
+		--entity.object:setpos(entity.object:getpos())
 		return
 	end
 	if moving_anim and moving_anim ~= nil and mobs_redo == true then
@@ -156,13 +179,12 @@ function lib_mount.drive(entity, dtime, moving_anim, stand_anim, can_fly)
 		else
 			new_acce = {x = 0, y = -9.8, z = 0}
 		end
-		new_velo = get_velocity(entity.v, entity.object:getyaw(),
-			entity.object:getvelocity().y)
-		entity.object:setpos(entity.object:getpos())
+		new_velo = get_velocity(entity.v, entity.object:getyaw(), velo.y)
+		--entity.object:setpos(entity.object:getpos())
 	else
 		p.y = p.y + 1
 		if is_group(p, "crumbly") then
-			local y = entity.object:getvelocity().y
+			local y = velo.y
 			if y >= 5 then
 				y = 5
 			elseif y < 0 then
@@ -171,25 +193,22 @@ function lib_mount.drive(entity, dtime, moving_anim, stand_anim, can_fly)
 				new_acce = {x = 0, y = 5, z = 0}
 			end
 			new_velo = get_velocity(entity.v, entity.object:getyaw(), y)
-			entity.object:setpos(entity.object:getpos())
+			--entity.object:setpos(entity.object:getpos())
 		else
 			new_acce = {x = 0, y = 0, z = 0}
-			if math.abs(entity.object:getvelocity().y) < 1 then
+			if math.abs(velo.y) < 1 then
 				local pos = entity.object:getpos()
 				pos.y = math.floor(pos.y) + 0.5
-				entity.object:setpos(pos)
+				--entity.object:setpos(pos)
 				new_velo = get_velocity(entity.v, entity.object:getyaw(), 0)
 			else
-				new_velo = get_velocity(entity.v, entity.object:getyaw(),
-					entity.object:getvelocity().y)
-				entity.object:setpos(entity.object:getpos())
+				new_velo = get_velocity(entity.v, entity.object:getyaw(), velo.y)
+				--entity.object:setpos(entity.object:getpos())
 			end
 		end
 	end
-	if can_fly and can_fly == true and ctrl.jump then 
-		new_velo.y = new_velo.y + 0.75
-		new_acce.y = new_acce.y + 1
-	end
+
+	new_acce.y = new_acce.y + acce_y
 	entity.object:setvelocity(new_velo)
 	entity.object:setacceleration(new_acce)
 end
