@@ -1,8 +1,8 @@
 
 local mobs_redo = false
-if mobs.mod and mobs.mod == "redo" then
-	mobs_redo = true
-end
+--if mobs.mod and mobs.mod == "redo" then
+--	mobs_redo = true
+--end
 
 --
 -- Helper functions
@@ -71,11 +71,12 @@ lib_mount = {}
 
 local half_a_pie = math.pi/2
 
-function lib_mount.attach(entity, player, attach_at, eye_offset)
+function lib_mount.attach(entity, player, attach_at, eye_offset, rotation)
 	eye_offset = eye_offset or {x=0, y=0, z=0}
+	rotation = rotation or {x=0, y=0, z=0}
 	force_detach(player)
 	entity.driver = player
-	player:set_attach(entity.object, "", attach_at, {x=0, y=0, z=0})
+	player:set_attach(entity.object, "", attach_at, rotation)
 	
 	player:set_properties({visual_size = {x=1, y=1}})
 	
@@ -84,15 +85,12 @@ function lib_mount.attach(entity, player, attach_at, eye_offset)
 	minetest.after(0.2, function()
 		default.player_set_animation(player, "sit" , 30)
 	end)
-	entity.object:setyaw(player:get_look_yaw() - half_a_pie)
+	player:set_look_yaw(entity.object:getyaw())
 end
 
-function lib_mount.detach(entity, player, offset)
-	entity.driver = nil
-	player:set_detach()
-	default.player_attached[player:get_player_name()] = false
+function lib_mount.detach(player, offset)
+	force_detach(player)
 	default.player_set_animation(player, "stand" , 30)
-	player:set_eye_offset({x=0, y=0, z=0}, {x=0, y=0, z=0})
 	local pos = player:getpos()
 	pos = {x = pos.x + offset.x, y = pos.y + 0.2 + offset.y, z = pos.z + offset.z}
 	minetest.after(0.1, function()
@@ -104,74 +102,92 @@ function lib_mount.drive(entity, dtime, moving_anim, stand_anim, jump_height, ca
 	if can_fly and can_fly == true then
 		jump_height = 0
 	end
+	
+	local acce_y = 0
 
 	local velo = entity.object:getvelocity()
 	entity.v = get_v(velo) * get_sign(entity.v)
 
-	local ctrl = entity.driver:get_player_control()
-	if ctrl.up then
-		entity.v = entity.v + 0.1
-	elseif ctrl.down then
-		entity.v = entity.v - 0.1
-	end
-
-	if ctrl.aux1 then
-		entity.object:setyaw(entity.driver:get_look_yaw() - half_a_pie)
-	else
-		local yaw = entity.object:getyaw()
-		if ctrl.left then
-			if entity.v < 0 then
-				entity.object:setyaw(yaw - (1 + dtime) * 0.03)
+	-- process controls
+	if entity.driver then
+		local ctrl = entity.driver:get_player_control()
+		if ctrl.up then
+			if get_sign(entity.v) >= 0 then
+				entity.v = entity.v + entity.accel/10
 			else
-				entity.object:setyaw(yaw + (1 + dtime) * 0.03)
+				entity.v = entity.v + entity.braking/10
 			end
-		elseif ctrl.right then
-			if entity.v < 0 then
-				entity.object:setyaw(yaw + (1 + dtime) * 0.03)
+		elseif ctrl.down then
+			if get_sign(entity.v) < 0 then
+				entity.v = entity.v - entity.accel/10
 			else
-				entity.object:setyaw(yaw - (1 + dtime) * 0.03)
+				entity.v = entity.v - entity.braking/10
 			end
 		end
+		if ctrl.aux1 then
+			entity.object:setyaw(entity.driver:get_look_yaw() - half_a_pie)
+		else
+			local yaw = entity.object:getyaw()
+			if ctrl.left then
+				entity.object:setyaw(entity.object:getyaw()+get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
+			elseif ctrl.right then
+				entity.object:setyaw(entity.object:getyaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
+			end
+		end
+		if ctrl.jump then
+			if jump_height > 0 and velo.y == 0 then
+				velo.y = velo.y + (jump_height * 3) + 1
+				acce_y = acce_y + (acce_y * 3) + 1
+			end
+			if can_fly and can_fly == true then
+				velo.y = velo.y + 1
+				acce_y = acce_y + 1
+			end
+		end
 	end
 
-	local acce_y = 0
-	if ctrl.jump then
-		if jump_height > 0 and velo.y == 0 then
-			velo.y = velo.y + (jump_height * 3) + 1
-			acce_y = acce_y + (acce_y * 3) + 1
-		end
-		if can_fly and can_fly == true then
-			velo.y = velo.y + 1
-			acce_y = acce_y + 1
-		end
-	end
-
+	-- animation?
 	if entity.v == 0 and velo.x == 0 and velo.y == 0 and velo.z == 0 then
 		if stand_anim and stand_anim ~= nil and mobs_redo == true then
 			set_animation(entity, stand_anim)
 		end
-		--entity.object:setpos(entity.object:getpos())
 		return
 	end
 	if moving_anim and moving_anim ~= nil and mobs_redo == true then
 		set_animation(entity, moving_anim)
 	end
+	
+	-- Stop!
 	local s = get_sign(entity.v)
-	entity.v = entity.v - 0.02 * s
+	entity.v = entity.v - 0.03 * s
 	if s ~= get_sign(entity.v) then
-		entity.object:setvelocity({x = 0, y = 0, z = 0})
+		entity.object:setvelocity({x=0, y=0, z=0})
 		entity.v = 0
 		return
 	end
-	if math.abs(entity.v) > 5 then
-		entity.v = 5 * get_sign(entity.v)
-	end
 
+	-- enforce speed limit forward and reverse
+	local max_spd = entity.max_spd_r
+	if get_sign(entity.v) >= 0 then
+		max_spd = entity.max_spd_f
+	end
+	if math.abs(entity.v) > max_spd then
+		entity.v = entity.v - get_sign(entity.v)
+	end
+	
+	-- Set position, velocity and acceleration	
 	local p = entity.object:getpos()
+	local new_velo = {x=0, y=0, z=0}
+	local new_acce = {x=0, y=0, z=0}
+	
+	local group_check = "crumbly"
+	if entity.is_boat then
+		group_check = "water"
+	end
+	
 	p.y = p.y - 0.5
-	local new_velo = {x = 0, y = 0, z = 0}
-	local new_acce = {x = 0, y = 0, z = 0}
-	if not is_group(p, "crumbly") then
+
+	if not is_group(p, group_check) then
 		local nodedef = minetest.registered_nodes[minetest.get_node(p).name]
 		if (not nodedef) or nodedef.walkable then
 			entity.v = 0
@@ -180,10 +196,9 @@ function lib_mount.drive(entity, dtime, moving_anim, stand_anim, jump_height, ca
 			new_acce = {x = 0, y = -9.8, z = 0}
 		end
 		new_velo = get_velocity(entity.v, entity.object:getyaw(), velo.y)
-		--entity.object:setpos(entity.object:getpos())
 	else
 		p.y = p.y + 1
-		if is_group(p, "crumbly") then
+		if is_group(p, group_check) then
 			local y = velo.y
 			if y >= 5 then
 				y = 5
@@ -193,17 +208,14 @@ function lib_mount.drive(entity, dtime, moving_anim, stand_anim, jump_height, ca
 				new_acce = {x = 0, y = 5, z = 0}
 			end
 			new_velo = get_velocity(entity.v, entity.object:getyaw(), y)
-			--entity.object:setpos(entity.object:getpos())
 		else
 			new_acce = {x = 0, y = 0, z = 0}
 			if math.abs(velo.y) < 1 then
 				local pos = entity.object:getpos()
 				pos.y = math.floor(pos.y) + 0.5
-				--entity.object:setpos(pos)
 				new_velo = get_velocity(entity.v, entity.object:getyaw(), 0)
 			else
 				new_velo = get_velocity(entity.v, entity.object:getyaw(), velo.y)
-				--entity.object:setpos(entity.object:getpos())
 			end
 		end
 	end
