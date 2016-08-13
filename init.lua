@@ -1,16 +1,32 @@
 
 local mobs_redo = false
-if mobs.mod and mobs.mod == "redo" then
-	mobs_redo = true
+if minetest.get_modpath("mobs") then
+	if mobs.mod and mobs.mod == "redo" then
+		mobs_redo = true
+	end
 end
 
 --
 -- Helper functions
 --
 
-local function is_group(pos, group)
-	local nn = minetest.get_node(pos).name
-	return minetest.get_item_group(nn, group) ~= 0
+--local function is_group(pos, group)
+--	local nn = minetest.get_node(pos).name
+--	return minetest.get_item_group(nn, group) ~= 0
+--end
+
+local function node_is(pos)
+	local node = minetest.get_node(pos)
+	if node.name == "air" then
+		return "air"
+	end
+	if minetest.get_item_group(node.name, "liquid") ~= 0 then
+		return "liquid"
+	end
+	if minetest.get_item_group(node.name, "walkable") ~= 0 then
+		return "walkable"
+	end
+	return "other"
 end
 
 local function get_sign(i)
@@ -69,13 +85,21 @@ end)
 
 lib_mount = {}
 
-local half_a_pie = math.pi/2
+local rot_steer, rot_view = math.pi/2, 0
 
-function lib_mount.attach(entity, player, attach_at, eye_offset)
+function lib_mount.attach(entity, player, attach_at, eye_offset, rotation)
 	eye_offset = eye_offset or {x=0, y=0, z=0}
+	rotation = rotation or {x=0, y=0, z=0}
+	if rotation.y == 90 then
+		rot_steer = 0
+		rot_view = math.pi/2
+	else
+		rot_steer = math.pi/2
+		rot_view = 0
+	end
 	force_detach(player)
 	entity.driver = player
-	player:set_attach(entity.object, "", attach_at, {x=0, y=0, z=0})
+	player:set_attach(entity.object, "", attach_at, rotation)
 	
 	player:set_properties({visual_size = {x=1, y=1}})
 	
@@ -84,15 +108,12 @@ function lib_mount.attach(entity, player, attach_at, eye_offset)
 	minetest.after(0.2, function()
 		default.player_set_animation(player, "sit" , 30)
 	end)
-	entity.object:setyaw(player:get_look_yaw() - half_a_pie)
+	player:set_look_yaw(entity.object:getyaw() - rot_view)
 end
 
-function lib_mount.detach(entity, player, offset)
-	entity.driver = nil
-	player:set_detach()
-	default.player_attached[player:get_player_name()] = false
+function lib_mount.detach(player, offset)
+	force_detach(player)
 	default.player_set_animation(player, "stand" , 30)
-	player:set_eye_offset({x=0, y=0, z=0}, {x=0, y=0, z=0})
 	local pos = player:getpos()
 	pos = {x = pos.x + offset.x, y = pos.y + 0.2 + offset.y, z = pos.z + offset.z}
 	minetest.after(0.1, function()
@@ -100,115 +121,172 @@ function lib_mount.detach(entity, player, offset)
 	end)
 end
 
-function lib_mount.drive(entity, dtime, moving_anim, stand_anim, jump_height, can_fly)
+function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly)
 	if can_fly and can_fly == true then
 		jump_height = 0
 	end
 
-	local velo = entity.object:getvelocity()
-	entity.v = get_v(velo) * get_sign(entity.v)
-
-	local ctrl = entity.driver:get_player_control()
-	if ctrl.up then
-		entity.v = entity.v + 0.1
-	elseif ctrl.down then
-		entity.v = entity.v - 0.1
-	end
-
-	if ctrl.aux1 then
-		entity.object:setyaw(entity.driver:get_look_yaw() - half_a_pie)
-	else
-		local yaw = entity.object:getyaw()
-		if ctrl.left then
-			if entity.v < 0 then
-				entity.object:setyaw(yaw - (1 + dtime) * 0.03)
-			else
-				entity.object:setyaw(yaw + (1 + dtime) * 0.03)
-			end
-		elseif ctrl.right then
-			if entity.v < 0 then
-				entity.object:setyaw(yaw + (1 + dtime) * 0.03)
-			else
-				entity.object:setyaw(yaw - (1 + dtime) * 0.03)
-			end
-		end
+	if is_mob and not entity.v2 then
+		entity.v2 = 0
+		entity.max_spd_f = 6
+		entity.max_spd_r = entity.max_spd_f-1
+		entity.accel = entity.max_spd_f
+		entity.braking = entity.max_spd_f
+		entity.turn_spd = entity.max_spd_f+1
 	end
 
 	local acce_y = 0
-	if ctrl.jump then
-		if jump_height > 0 and velo.y == 0 then
-			velo.y = velo.y + (jump_height * 3) + 1
-			acce_y = acce_y + (acce_y * 3) + 1
+
+	local velo = entity.object:getvelocity()
+	entity.v = get_v(velo) * get_sign(entity.v)
+
+	-- process controls
+	if entity.driver then
+		local ctrl = entity.driver:get_player_control()
+		if ctrl.up then
+			if get_sign(entity.v) >= 0 then
+				entity.v = entity.v + entity.accel/10
+			else
+				entity.v = entity.v + entity.braking/10
+			end
+		elseif ctrl.down then
+			if get_sign(entity.v) < 0 then
+				entity.v = entity.v - entity.accel/10
+			else
+				entity.v = entity.v - entity.braking/10
+			end
 		end
-		if can_fly and can_fly == true then
-			velo.y = velo.y + 1
-			acce_y = acce_y + 1
+		if ctrl.aux1 then
+			entity.object:setyaw(entity.driver:get_look_yaw() - rot_steer)
+		else
+			local yaw = entity.object:getyaw()
+			if ctrl.left then
+				entity.object:setyaw(entity.object:getyaw()+get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
+			elseif ctrl.right then
+				entity.object:setyaw(entity.object:getyaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
+			end
+		end
+		if ctrl.jump then
+			if jump_height > 0 and velo.y == 0 then
+				velo.y = velo.y + (jump_height * 3) + 1
+				acce_y = acce_y + (acce_y * 3) + 1
+			end
+			if can_fly and can_fly == true then
+				velo.y = velo.y + 1
+				acce_y = acce_y + 1
+			end
+		end
+		if ctrl.sneak then
+			if can_fly and can_fly == true then
+				velo.y = velo.y - 1
+				acce_y = acce_y - 1
+			end
 		end
 	end
 
+	-- if not moving then set animation and return
 	if entity.v == 0 and velo.x == 0 and velo.y == 0 and velo.z == 0 then
-		if stand_anim and stand_anim ~= nil and mobs_redo == true then
-			set_animation(entity, stand_anim)
+		if is_mob then
+			if stand_anim and stand_anim ~= nil and mobs_redo == true then
+				set_animation(entity, stand_anim)
+			end
 		end
-		--entity.object:setpos(entity.object:getpos())
 		return
 	end
-	if moving_anim and moving_anim ~= nil and mobs_redo == true then
-		set_animation(entity, moving_anim)
+	
+	-- set animation
+	if is_mob then
+		if moving_anim and moving_anim ~= nil and mobs_redo == true then
+			set_animation(entity, moving_anim)
+		end
 	end
+
+	-- Stop!
 	local s = get_sign(entity.v)
 	entity.v = entity.v - 0.02 * s
 	if s ~= get_sign(entity.v) then
-		entity.object:setvelocity({x = 0, y = 0, z = 0})
+		entity.object:setvelocity({x=0, y=0, z=0})
 		entity.v = 0
 		return
 	end
-	if math.abs(entity.v) > 5 then
-		entity.v = 5 * get_sign(entity.v)
+
+	-- enforce speed limit forward and reverse
+	local max_spd = entity.max_spd_r
+	if get_sign(entity.v) >= 0 then
+		max_spd = entity.max_spd_f
+	end
+	if math.abs(entity.v) > max_spd then
+		entity.v = entity.v - get_sign(entity.v)
 	end
 
+	-- Set position, velocity and acceleration	
 	local p = entity.object:getpos()
+	local new_velo = {x=0, y=0, z=0}
+	local new_acce = {x=0, y=-9.8, z=0}
+
 	p.y = p.y - 0.5
-	local new_velo = {x = 0, y = 0, z = 0}
-	local new_acce = {x = 0, y = 0, z = 0}
-	if not is_group(p, "crumbly") then
-		local nodedef = minetest.registered_nodes[minetest.get_node(p).name]
-		if (not nodedef) or nodedef.walkable then
-			entity.v = 0
-			new_acce = {x = 0, y = 1, z = 0}
-		else
-			new_acce = {x = 0, y = -9.8, z = 0}
+	local ni = node_is(p)
+	local v = entity.v
+	if ni == "air" then
+		if can_fly == true then
+			new_acce.y = 0
 		end
-		new_velo = get_velocity(entity.v, entity.object:getyaw(), velo.y)
-		--entity.object:setpos(entity.object:getpos())
-	else
-		p.y = p.y + 1
-		if is_group(p, "crumbly") then
-			local y = velo.y
-			if y >= 5 then
-				y = 5
-			elseif y < 0 then
-				new_acce = {x = 0, y = 20, z = 0}
+	elseif ni == "liquid" then
+		if entity.is_boat == true then
+			new_acce.y = 0
+			p.y = p.y + 1
+			if node_is(p) == "liquid" then
+				if velo.y >= 5 then
+					velo.y = 5
+				elseif velo.y < 0 then
+					new_acce.y = 20
+				else
+					new_acce.y = 5
+				end
 			else
-				new_acce = {x = 0, y = 5, z = 0}
+				new_acce.y = 0
+				if math.abs(velo.y) < 1 then
+					local pos = entity.object:getpos()
+					pos.y = math.floor(pos.y) + 0.5
+					entity.object:setpos(pos)
+					velo.y = 0
+				end
 			end
-			new_velo = get_velocity(entity.v, entity.object:getyaw(), y)
-			--entity.object:setpos(entity.object:getpos())
 		else
-			new_acce = {x = 0, y = 0, z = 0}
-			if math.abs(velo.y) < 1 then
-				local pos = entity.object:getpos()
-				pos.y = math.floor(pos.y) + 0.5
-				--entity.object:setpos(pos)
-				new_velo = get_velocity(entity.v, entity.object:getyaw(), 0)
-			else
-				new_velo = get_velocity(entity.v, entity.object:getyaw(), velo.y)
-				--entity.object:setpos(entity.object:getpos())
-			end
+			v = v*0.75
 		end
+	elseif ni == "walkable" then
+		v = 0
+		new_acce.y = 1
 	end
 
+	new_velo = get_velocity(v, entity.object:getyaw() - rot_view, velo.y)
 	new_acce.y = new_acce.y + acce_y
+
 	entity.object:setvelocity(new_velo)
 	entity.object:setacceleration(new_acce)
+
+	-- CRASH!
+	local intensity = entity.v2 - entity.v
+	if intensity >= 10 then
+		if is_mob then
+			entity.object:set_hp(entity.object:get_hp() - intensity)
+		else
+			if entity.driver then
+				local drvr = entity.driver
+				lib_mount.detach(drvr, {x=0, y=0, z=0})
+				drvr:setvelocity(new_velo)
+				drvr:set_hp(drvr:get_hp() - intensity)
+			end
+			local pos = entity.object:getpos()
+			minetest.add_item(pos, entity.drop_on_destroy)
+			entity.removed = true
+			-- delay remove to ensure player is detached
+			minetest.after(0.1, function()
+				entity.object:remove()
+			end)
+		end
+	end
+
+	entity.v2 = entity.v
 end
