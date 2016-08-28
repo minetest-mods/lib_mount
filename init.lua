@@ -1,4 +1,9 @@
 
+local enable_crash = true
+local crash_threshold = 6.5		-- ignored if enable_crash=false
+
+------------------------------------------------------------------------------
+
 local mobs_redo = false
 if minetest.get_modpath("mobs") then
 	if mobs.mod and mobs.mod == "redo" then
@@ -56,9 +61,9 @@ local function force_detach(player)
 			entity.driver = nil
 		end
 		player:set_detach()
+		default.player_attached[player:get_player_name()] = false
+		player:set_eye_offset({x=0, y=0, z=0}, {x=0, y=0, z=0})
 	end
-	default.player_attached[player:get_player_name()] = false
-	player:set_eye_offset({x=0, y=0, z=0}, {x=0, y=0, z=0})
 end
 
 -------------------------------------------------------------------------------
@@ -85,18 +90,18 @@ end)
 
 lib_mount = {}
 
-local rot_steer, rot_view = math.pi/2, 0
-
 function lib_mount.attach(entity, player, attach_at, eye_offset, rotation)
 	eye_offset = eye_offset or {x=0, y=0, z=0}
 	rotation = rotation or {x=0, y=0, z=0}
-	if rotation.y == 90 then
-		rot_steer = 0
-		rot_view = math.pi/2
-	else
-		rot_steer = math.pi/2
-		rot_view = 0
+
+	if not entity.player_rotation then
+		entity.player_rotation = rotation
 	end
+	local rot_view = 0
+	if rotation.y == 90 then
+		rot_view = math.pi/2
+	end
+
 	force_detach(player)
 	entity.driver = player
 	player:set_attach(entity.object, "", attach_at, rotation)
@@ -121,18 +126,18 @@ function lib_mount.detach(player, offset)
 	end)
 end
 
+local aux_timer = 0
+
 function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly)
+	aux_timer = aux_timer + dtime
+	
 	if can_fly and can_fly == true then
 		jump_height = 0
 	end
 
-	if is_mob and not entity.v2 then
-		entity.v2 = 0
-		entity.max_spd_f = 6
-		entity.max_spd_r = entity.max_spd_f-1
-		entity.accel = entity.max_spd_f
-		entity.braking = entity.max_spd_f
-		entity.turn_spd = entity.max_spd_f+1
+	local rot_steer, rot_view = math.pi/2, 0
+	if entity.player_rotation.y == 90 then
+		rot_steer, rot_view = 0, math.pi/2
 	end
 
 	local acce_y = 0
@@ -143,6 +148,12 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 	-- process controls
 	if entity.driver then
 		local ctrl = entity.driver:get_player_control()
+		if ctrl.aux1 then
+			if aux_timer >= 0.2 then
+				entity.mouselook = not entity.mouselook
+				aux_timer = 0
+			end
+		end
 		if ctrl.up then
 			if get_sign(entity.v) >= 0 then
 				entity.v = entity.v + entity.accel/10
@@ -150,21 +161,21 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				entity.v = entity.v + entity.braking/10
 			end
 		elseif ctrl.down then
+			if entity.max_speed_reverse == 0 and entity.v == 0 then return end
 			if get_sign(entity.v) < 0 then
 				entity.v = entity.v - entity.accel/10
 			else
 				entity.v = entity.v - entity.braking/10
 			end
 		end
-		if ctrl.aux1 then
-			entity.object:setyaw(entity.driver:get_look_yaw() - rot_steer)
-		else
-			local yaw = entity.object:getyaw()
+		if entity.mouselook then
 			if ctrl.left then
 				entity.object:setyaw(entity.object:getyaw()+get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
 			elseif ctrl.right then
 				entity.object:setyaw(entity.object:getyaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
 			end
+		else
+			entity.object:setyaw(entity.driver:get_look_yaw() - rot_steer)
 		end
 		if ctrl.jump then
 			if jump_height > 0 and velo.y == 0 then
@@ -186,8 +197,8 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 
 	-- if not moving then set animation and return
 	if entity.v == 0 and velo.x == 0 and velo.y == 0 and velo.z == 0 then
-		if is_mob then
-			if stand_anim and stand_anim ~= nil and mobs_redo == true then
+		if is_mob and mobs_redo == true then
+			if stand_anim and stand_anim ~= nil then
 				set_animation(entity, stand_anim)
 			end
 		end
@@ -195,8 +206,8 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 	end
 	
 	-- set animation
-	if is_mob then
-		if moving_anim and moving_anim ~= nil and mobs_redo == true then
+	if is_mob and mobs_redo == true then
+		if moving_anim and moving_anim ~= nil then
 			set_animation(entity, moving_anim)
 		end
 	end
@@ -211,9 +222,9 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 	end
 
 	-- enforce speed limit forward and reverse
-	local max_spd = entity.max_spd_r
+	local max_spd = entity.max_speed_reverse
 	if get_sign(entity.v) >= 0 then
-		max_spd = entity.max_spd_f
+		max_spd = entity.max_speed_forward
 	end
 	if math.abs(entity.v) > max_spd then
 		entity.v = entity.v - get_sign(entity.v)
@@ -232,7 +243,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 			new_acce.y = 0
 		end
 	elseif ni == "liquid" then
-		if entity.is_boat == true then
+		if entity.terrain_type == 2 or entity.terrain_type == 3 then
 			new_acce.y = 0
 			p.y = p.y + 1
 			if node_is(p) == "liquid" then
@@ -244,7 +255,6 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 					new_acce.y = 5
 				end
 			else
-				new_acce.y = 0
 				if math.abs(velo.y) < 1 then
 					local pos = entity.object:getpos()
 					pos.y = math.floor(pos.y) + 0.5
@@ -253,11 +263,11 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				end
 			end
 		else
-			v = v*0.75
+			v = v*0.25
 		end
-	elseif ni == "walkable" then
-		v = 0
-		new_acce.y = 1
+--	elseif ni == "walkable" then
+--		v = 0
+--		new_acce.y = 1
 	end
 
 	new_velo = get_velocity(v, entity.object:getyaw() - rot_view, velo.y)
@@ -267,26 +277,34 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 	entity.object:setacceleration(new_acce)
 
 	-- CRASH!
-	local intensity = entity.v2 - entity.v
-	if intensity >= 10 then
-		if is_mob then
-			entity.object:set_hp(entity.object:get_hp() - intensity)
-		else
-			if entity.driver then
-				local drvr = entity.driver
-				lib_mount.detach(drvr, {x=0, y=0, z=0})
-				drvr:setvelocity(new_velo)
-				drvr:set_hp(drvr:get_hp() - intensity)
+	if enable_crash then
+		local intensity = entity.v2 - v
+		if intensity >= crash_threshold then
+			if is_mob then
+				entity.object:set_hp(entity.object:get_hp() - intensity)
+			else
+				if entity.driver then
+					local drvr = entity.driver
+					lib_mount.detach(drvr, {x=0, y=0, z=0})
+					drvr:setvelocity(new_velo)
+					drvr:set_hp(drvr:get_hp() - intensity)
+				end
+				if entity.passenger then
+					local pass = entity.passenger
+					lib_mount.detach(pass, {x=0, y=0, z=0})
+					pass:setvelocity(new_velo)
+					pass:set_hp(pass:get_hp() - intensity)
+				end
+				local pos = entity.object:getpos()
+				minetest.add_item(pos, entity.drop_on_destroy)
+				entity.removed = true
+				-- delay remove to ensure player is detached
+				minetest.after(0.1, function()
+					entity.object:remove()
+				end)
 			end
-			local pos = entity.object:getpos()
-			minetest.add_item(pos, entity.drop_on_destroy)
-			entity.removed = true
-			-- delay remove to ensure player is detached
-			minetest.after(0.1, function()
-				entity.object:remove()
-			end)
 		end
 	end
 
-	entity.v2 = entity.v
+	entity.v2 = v
 end
