@@ -55,10 +55,12 @@ end
 
 local function force_detach(player)
 	local attached_to = player:get_attach()
-	if attached_to and attached_to:get_luaentity() then
+	if attached_to then
 		local entity = attached_to:get_luaentity()
-		if entity.driver then
+		if entity.driver and entity.driver == player then
 			entity.driver = nil
+		elseif entity.passenger and entity.passenger == player then
+			entity.passenger = nil
 		end
 		player:set_detach()
 		default.player_attached[player:get_player_name()] = false
@@ -90,26 +92,45 @@ end)
 
 lib_mount = {}
 
-function lib_mount.attach(entity, player, attach_at, eye_offset, rotation)
-	eye_offset = eye_offset or {x=0, y=0, z=0}
-	rotation = rotation or {x=0, y=0, z=0}
-
+function lib_mount.attach(entity, player, is_passenger)
+	local attach_at, eye_offset = {}, {}
+	
 	if not entity.player_rotation then
-		entity.player_rotation = rotation
+		entity.player_rotation = {x=0, y=0, z=0}
 	end
+	
 	local rot_view = 0
-	if rotation.y == 90 then
+	if entity.player_rotation.y == 90 then
 		rot_view = math.pi/2
 	end
 
+	if is_passenger == true then
+		if not entity.passenger_attach_at then
+			entity.passenger_attach_at = {x=0, y=0, z=0}
+		end
+		if not entity.passenger_eye_offset then
+			entity.passenger_eye_offset = {x=0, y=0, z=0}
+		end 
+		attach_at = entity.passenger_attach_at
+		eye_offset = entity.passenger_eye_offset
+		entity.passenger = player
+	else
+		if not entity.driver_attach_at then
+			entity.driver_attach_at = {x=0, y=0, z=0}
+		end
+		if not entity.driver_eye_offset then
+			entity.driver_eye_offset = {x=0, y=0, z=0}
+		end 
+		attach_at = entity.driver_attach_at
+		eye_offset = entity.driver_eye_offset
+		entity.driver = player
+	end
+
 	force_detach(player)
-	entity.driver = player
-	player:set_attach(entity.object, "", attach_at, rotation)
-	
-	player:set_properties({visual_size = {x=1, y=1}})
-	
-	player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
+
+	player:set_attach(entity.object, "", attach_at, entity.player_rotation)
 	default.player_attached[player:get_player_name()] = true
+	player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
 	minetest.after(0.2, function()
 		default.player_set_animation(player, "sit" , 30)
 	end)
