@@ -1,3 +1,27 @@
+--[[
+    An API framework for mounting objects.
+    Copyright (C) 2016-2020 blert2112 and David Leal (halfpacho@gmail.com)
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+	USA
+
+-----------------------------------------------------------------------------
+
+Dependencies: default, player_api (both included in Minetest Game)
+Optional dependencies: mobs
+--]]
 
 local enable_crash = true
 local crash_threshold = 6.5		-- ignored if enable_crash=false
@@ -63,7 +87,7 @@ local function force_detach(player)
 			entity.passenger = nil
 		end
 		player:set_detach()
-		default.player_attached[player:get_player_name()] = false
+		player_api.player_attached[player:get_player_name()] = false
 		player:set_eye_offset({x=0, y=0, z=0}, {x=0, y=0, z=0})
 	end
 end
@@ -94,11 +118,11 @@ lib_mount = {}
 
 function lib_mount.attach(entity, player, is_passenger)
 	local attach_at, eye_offset = {}, {}
-	
+
 	if not entity.player_rotation then
 		entity.player_rotation = {x=0, y=0, z=0}
 	end
-	
+
 	local rot_view = 0
 	if entity.player_rotation.y == 90 then
 		rot_view = math.pi/2
@@ -110,7 +134,7 @@ function lib_mount.attach(entity, player, is_passenger)
 		end
 		if not entity.passenger_eye_offset then
 			entity.passenger_eye_offset = {x=0, y=0, z=0}
-		end 
+		end
 		attach_at = entity.passenger_attach_at
 		eye_offset = entity.passenger_eye_offset
 		entity.passenger = player
@@ -120,7 +144,7 @@ function lib_mount.attach(entity, player, is_passenger)
 		end
 		if not entity.driver_eye_offset then
 			entity.driver_eye_offset = {x=0, y=0, z=0}
-		end 
+		end
 		attach_at = entity.driver_attach_at
 		eye_offset = entity.driver_eye_offset
 		entity.driver = player
@@ -129,21 +153,21 @@ function lib_mount.attach(entity, player, is_passenger)
 	force_detach(player)
 
 	player:set_attach(entity.object, "", attach_at, entity.player_rotation)
-	default.player_attached[player:get_player_name()] = true
+	player_api.player_attached[player:get_player_name()] = true
 	player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
 	minetest.after(0.2, function()
-		default.player_set_animation(player, "sit" , 30)
+		player_api.set_animation(player, "sit" , 30)
 	end)
-	player:set_look_yaw(entity.object:getyaw() - rot_view)
+	player:set_look_horizontal(entity.object:get_yaw() - rot_view)
 end
 
 function lib_mount.detach(player, offset)
 	force_detach(player)
-	default.player_set_animation(player, "stand" , 30)
-	local pos = player:getpos()
+	player_api.set_animation(player, "stand" , 30)
+	local pos = player:get_pos()
 	pos = {x = pos.x + offset.x, y = pos.y + 0.2 + offset.y, z = pos.z + offset.z}
 	minetest.after(0.1, function()
-		player:setpos(pos)
+		player:set_pos(pos)
 	end)
 end
 
@@ -151,7 +175,7 @@ local aux_timer = 0
 
 function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly)
 	aux_timer = aux_timer + dtime
-	
+
 	if can_fly and can_fly == true then
 		jump_height = 0
 	end
@@ -163,7 +187,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 
 	local acce_y = 0
 
-	local velo = entity.object:getvelocity()
+	local velo = entity.object:get_velocity()
 	entity.v = get_v(velo) * get_sign(entity.v)
 
 	-- process controls
@@ -191,12 +215,12 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 		end
 		if entity.mouselook then
 			if ctrl.left then
-				entity.object:setyaw(entity.object:getyaw()+get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
+				entity.object:set_yaw(entity.object:get_yaw()+get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
 			elseif ctrl.right then
-				entity.object:setyaw(entity.object:getyaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
+				entity.object:set_yaw(entity.object:get_yaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
 			end
 		else
-			entity.object:setyaw(entity.driver:get_look_yaw() - rot_steer)
+			entity.object:set_yaw(entity.driver:get_look_horizontal() - rot_steer)
 		end
 		if ctrl.jump then
 			if jump_height > 0 and velo.y == 0 then
@@ -225,7 +249,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 		end
 		return
 	end
-	
+
 	-- set animation
 	if is_mob and mobs_redo == true then
 		if moving_anim and moving_anim ~= nil then
@@ -237,7 +261,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 	local s = get_sign(entity.v)
 	entity.v = entity.v - 0.02 * s
 	if s ~= get_sign(entity.v) then
-		entity.object:setvelocity({x=0, y=0, z=0})
+		entity.object:set_velocity({x=0, y=0, z=0})
 		entity.v = 0
 		return
 	end
@@ -251,8 +275,8 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 		entity.v = entity.v - get_sign(entity.v)
 	end
 
-	-- Set position, velocity and acceleration	
-	local p = entity.object:getpos()
+	-- Set position, velocity and acceleration
+	local p = entity.object:get_pos()
 	local new_velo = {x=0, y=0, z=0}
 	local new_acce = {x=0, y=-9.8, z=0}
 
@@ -277,9 +301,9 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				end
 			else
 				if math.abs(velo.y) < 1 then
-					local pos = entity.object:getpos()
+					local pos = entity.object:get_pos()
 					pos.y = math.floor(pos.y) + 0.5
-					entity.object:setpos(pos)
+					entity.object:set_pos(pos)
 					velo.y = 0
 				end
 			end
@@ -291,11 +315,11 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 --		new_acce.y = 1
 	end
 
-	new_velo = get_velocity(v, entity.object:getyaw() - rot_view, velo.y)
+	new_velo = get_velocity(v, entity.object:get_yaw() - rot_view, velo.y)
 	new_acce.y = new_acce.y + acce_y
 
-	entity.object:setvelocity(new_velo)
-	entity.object:setacceleration(new_acce)
+	entity.object:set_velocity(new_velo)
+	entity.object:set_acceleration(new_acce)
 
 	-- CRASH!
 	if enable_crash then
@@ -307,16 +331,16 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				if entity.driver then
 					local drvr = entity.driver
 					lib_mount.detach(drvr, {x=0, y=0, z=0})
-					drvr:setvelocity(new_velo)
+					drvr:set_velocity(new_velo)
 					drvr:set_hp(drvr:get_hp() - intensity)
 				end
 				if entity.passenger then
 					local pass = entity.passenger
 					lib_mount.detach(pass, {x=0, y=0, z=0})
-					pass:setvelocity(new_velo)
+					pass:set_velocity(new_velo)
 					pass:set_hp(pass:get_hp() - intensity)
 				end
-				local pos = entity.object:getpos()
+				local pos = entity.object:get_pos()
 				minetest.add_item(pos, entity.drop_on_destroy)
 				entity.removed = true
 				-- delay remove to ensure player is detached
