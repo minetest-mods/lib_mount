@@ -1,4 +1,5 @@
-# Library Mount [![](https://github.com/Panquesito7/lib_mount/workflows/build/badge.svg)](https://github.com/Panquesito7/lib_mount/actions)
+# Library Mount [![](https://github.com/Panquesito7/lib_mount/workflows/build/badge.svg)](https://github.com/Panquesito7/lib_mount/actions) [![License](https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
+
 Made by [blert2112](https://github.com/blert2112).\
 Improved by [Panquesito7](https://github.com/Panquesito7).
 
@@ -6,7 +7,10 @@ Current version: 1.1
 
 ## Dependencies
 - `default` (included in [Minetest Game](https://github.com/minetest/minetest_game))
-- `wool` (included in [Minetest Game](https://github.com/minetest/minetest_game))
+- `player_api` (included in [Minetest Game](https://github.com/minetest/minetest_game))
+
+### Optional dependencies
+- [`mobs`](https://notabug.org/TenPlus1/mobs_redo)
 
 ## Requirements
 - Version 1.0 for MT 0.4.14+
