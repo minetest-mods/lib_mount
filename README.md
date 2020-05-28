@@ -3,7 +3,7 @@
 Made by [blert2112](https://github.com/blert2112).\
 Improved by [Panquesito7](https://github.com/Panquesito7).
 
-Current version: 1.1
+Current version: 1.1.1
 
 ## Dependencies
 - `default` (included in [Minetest Game](https://github.com/minetest/minetest_game))

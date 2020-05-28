@@ -113,11 +113,12 @@ end)
 
 -------------------------------------------------------------------------------
 
-
 lib_mount = {}
 
-function lib_mount.attach(entity, player, is_passenger)
+function lib_mount.attach(entity, player, is_passenger, passenger_number)
 	local attach_at, eye_offset = {}, {}
+	local attach_at2, eye_offset2 = {}, {}
+	local attach_at3, eye_offset3 = {}, {}
 
 	if not entity.player_rotation then
 		entity.player_rotation = {x=0, y=0, z=0}
@@ -135,8 +136,31 @@ function lib_mount.attach(entity, player, is_passenger)
 		if not entity.passenger_eye_offset then
 			entity.passenger_eye_offset = {x=0, y=0, z=0}
 		end
+
+		-- Support for more passengers
+		if not entity.passenger2_attach_at then
+			entity.passenger2_attach_at = {x=0, y=0, z=0}
+		end
+		if not entity.passenger2_eye_offset then
+			entity.passenger2_eye_offset = {x=0, y=0, z=0}
+		end
+
+		if not entity.passenger3_attach_at then
+			entity.passenger3_attach_at = {x=0, y=0, z=0}
+		end
+		if not entity.passenger3_eye_offset then
+			entity.passenger3_eye_offset = {x=0, y=0, z=0}
+		end
+
 		attach_at = entity.passenger_attach_at
 		eye_offset = entity.passenger_eye_offset
+
+		attach_at2 = entity.passenger2_attach_at
+		eye_offset2 = entity.passenger2_eye_offset
+
+		attach_at3 = entity.passenger3_attach_at
+		eye_offset3 = entity.passenger3_eye_offset
+
 		entity.passenger = player
 	else
 		if not entity.driver_attach_at then
@@ -152,18 +176,38 @@ function lib_mount.attach(entity, player, is_passenger)
 
 	force_detach(player)
 
-	player:set_attach(entity.object, "", attach_at, entity.player_rotation)
-	player_api.player_attached[player:get_player_name()] = true
-	player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
-	minetest.after(0.2, function()
-		player_api.set_animation(player, "sit" , 30)
-	end)
-	player:set_look_horizontal(entity.object:get_yaw() - rot_view)
+	if passenger_number == 1 or passenger_number == 0 then
+		player:set_attach(entity.object, "", attach_at, entity.player_rotation)
+		player_api.player_attached[player:get_player_name()] = true
+		player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
+		minetest.after(0.2, function()
+			player_api.set_animation(player, "sit", 30)
+		end)
+		player:set_look_horizontal(entity.object:get_yaw() - rot_view)
+
+	elseif passenger_number == 2 then
+		player:set_attach(entity.object, "", attach_at2, entity.player_rotation)
+		player_api.player_attached[player:get_player_name()] = true
+		player:set_eye_offset(eye_offset2, {x=0, y=0, z=0})
+		minetest.after(0.2, function()
+			player_api.set_animation(player, "sit", 30)
+		end)
+		player:set_look_horizontal(entity.object:get_yaw() - rot_view)
+
+	elseif passenger_number == 3 then
+		player:set_attach(entity.object, "", attach_at3, entity.player_rotation)
+		player_api.player_attached[player:get_player_name()] = true
+		player:set_eye_offset(eye_offset3, {x=0, y=0, z=0})
+		minetest.after(0.2, function()
+			player_api.set_animation(player, "sit", 30)
+		end)
+		player:set_look_horizontal(entity.object:get_yaw() - rot_view)
+	end
 end
 
 function lib_mount.detach(player, offset)
 	force_detach(player)
-	player_api.set_animation(player, "stand" , 30)
+	player_api.set_animation(player, "stand", 30)
 	local pos = player:get_pos()
 	pos = {x = pos.x + offset.x, y = pos.y + 0.2 + offset.y, z = pos.z + offset.z}
 	minetest.after(0.1, function()
@@ -220,7 +264,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				entity.object:set_yaw(entity.object:get_yaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
 			end
 		else
-			entity.object:set_yaw(entity.driver:get_look_horizontal() - rot_steer)
+			entity.object:set_yaw(entity.driver:get_look_yaw() - rot_steer)
 		end
 		if ctrl.jump then
 			if jump_height > 0 and velo.y == 0 then
