@@ -15,13 +15,17 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-	USA
+	  USA
 
 -----------------------------------------------------------------------------
 
 Dependencies: default, player_api (both included in Minetest Game)
 Optional dependencies: mobs
 --]]
+
+lib_mount = {
+	passengers = {}
+}
 
 local enable_crash = true
 local crash_threshold = 6.5		-- ignored if enable_crash=false
@@ -85,6 +89,13 @@ local function force_detach(player)
 			entity.driver = nil
 		elseif entity.passenger and entity.passenger == player then
 			entity.passenger = nil
+			lib_mount.passengers[player] = nil
+		elseif entity.passenger2 and entity.passenger2 == player then
+			entity.passenger2 = nil
+			lib_mount.passengers[player] = nil
+		elseif entity.passenger3 and entity.passenger3 == player then
+			entity.passenger3 = nil
+			lib_mount.passengers[player] = nil
 		end
 		player:set_detach()
 		player_api.player_attached[player:get_player_name()] = false
@@ -93,7 +104,6 @@ local function force_detach(player)
 end
 
 -------------------------------------------------------------------------------
-
 
 minetest.register_on_leaveplayer(function(player)
 	force_detach(player)
@@ -113,12 +123,12 @@ end)
 
 -------------------------------------------------------------------------------
 
-lib_mount = {}
-
 function lib_mount.attach(entity, player, is_passenger, passenger_number)
 	local attach_at, eye_offset = {}, {}
-	local attach_at2, eye_offset2 = {}, {}
-	local attach_at3, eye_offset3 = {}, {}
+
+	if not is_passenger then
+		passenger_number = nil
+	end
 
 	if not entity.player_rotation then
 		entity.player_rotation = {x=0, y=0, z=0}
@@ -129,7 +139,7 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 		rot_view = math.pi/2
 	end
 
-	if is_passenger == true then
+	if is_passenger == true and passenger_number == 1 then
 		if not entity.passenger_attach_at then
 			entity.passenger_attach_at = {x=0, y=0, z=0}
 		end
@@ -137,7 +147,13 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 			entity.passenger_eye_offset = {x=0, y=0, z=0}
 		end
 
-		-- Support for more passengers
+		attach_at = entity.passenger_attach_at
+		eye_offset = entity.passenger_eye_offset
+
+		entity.passenger = player
+		lib_mount.passengers[entity.passenger] = player
+
+	elseif is_passenger == true and passenger_number == 2 then
 		if not entity.passenger2_attach_at then
 			entity.passenger2_attach_at = {x=0, y=0, z=0}
 		end
@@ -145,6 +161,13 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 			entity.passenger2_eye_offset = {x=0, y=0, z=0}
 		end
 
+		attach_at = entity.passenger2_attach_at
+		eye_offset = entity.passenger2_eye_offset
+
+		entity.passenger2 = player
+		lib_mount.passengers[entity.passenger2] = player
+
+	elseif is_passenger == true and passenger_number == 3 then
 		if not entity.passenger3_attach_at then
 			entity.passenger3_attach_at = {x=0, y=0, z=0}
 		end
@@ -152,16 +175,11 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 			entity.passenger3_eye_offset = {x=0, y=0, z=0}
 		end
 
-		attach_at = entity.passenger_attach_at
-		eye_offset = entity.passenger_eye_offset
+		attach_at = entity.passenger3_attach_at
+		eye_offset = entity.passenger3_eye_offset
 
-		attach_at2 = entity.passenger2_attach_at
-		eye_offset2 = entity.passenger2_eye_offset
-
-		attach_at3 = entity.passenger3_attach_at
-		eye_offset3 = entity.passenger3_eye_offset
-
-		entity.passenger = player
+		entity.passenger3 = player
+		lib_mount.passengers[entity.passenger3] = player
 	else
 		if not entity.driver_attach_at then
 			entity.driver_attach_at = {x=0, y=0, z=0}
@@ -176,33 +194,13 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 
 	force_detach(player)
 
-	if passenger_number == 1 or passenger_number == 0 then
-		player:set_attach(entity.object, "", attach_at, entity.player_rotation)
-		player_api.player_attached[player:get_player_name()] = true
-		player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
-		minetest.after(0.2, function()
-			player_api.set_animation(player, "sit", 30)
-		end)
-		player:set_look_horizontal(entity.object:get_yaw() - rot_view)
-
-	elseif passenger_number == 2 then
-		player:set_attach(entity.object, "", attach_at2, entity.player_rotation)
-		player_api.player_attached[player:get_player_name()] = true
-		player:set_eye_offset(eye_offset2, {x=0, y=0, z=0})
-		minetest.after(0.2, function()
-			player_api.set_animation(player, "sit", 30)
-		end)
-		player:set_look_horizontal(entity.object:get_yaw() - rot_view)
-
-	elseif passenger_number == 3 then
-		player:set_attach(entity.object, "", attach_at3, entity.player_rotation)
-		player_api.player_attached[player:get_player_name()] = true
-		player:set_eye_offset(eye_offset3, {x=0, y=0, z=0})
-		minetest.after(0.2, function()
-			player_api.set_animation(player, "sit", 30)
-		end)
-		player:set_look_horizontal(entity.object:get_yaw() - rot_view)
-	end
+	player:set_attach(entity.object, "", attach_at, entity.player_rotation)
+	player_api.player_attached[player:get_player_name()] = true
+	player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
+	minetest.after(0.2, function()
+		player_api.set_animation(player, "sit", 30)
+	end)
+	player:set_look_horizontal(entity.object:get_yaw() - rot_view)
 end
 
 function lib_mount.detach(player, offset)
@@ -378,8 +376,23 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 					drvr:set_velocity(new_velo)
 					drvr:set_hp(drvr:get_hp() - intensity)
 				end
+
 				if entity.passenger then
 					local pass = entity.passenger
+					lib_mount.detach(pass, {x=0, y=0, z=0})
+					pass:set_velocity(new_velo)
+					pass:set_hp(pass:get_hp() - intensity)
+				end
+
+				if entity.passenger2 then
+					local pass = entity.passenger2
+					lib_mount.detach(pass, {x=0, y=0, z=0})
+					pass:set_velocity(new_velo)
+					pass:set_hp(pass:get_hp() - intensity)
+				end
+
+				if entity.passenger3 then
+					local pass = entity.passenger3
 					lib_mount.detach(pass, {x=0, y=0, z=0})
 					pass:set_velocity(new_velo)
 					pass:set_hp(pass:get_hp() - intensity)
