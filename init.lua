@@ -398,7 +398,18 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 					pass:set_hp(pass:get_hp() - intensity)
 				end
 				local pos = entity.object:get_pos()
-				minetest.add_item(pos, entity.drop_on_destroy)
+
+				-- Handle drops
+				local i = math.random(1, #entity.drop_on_destroy)
+				local j = math.random(2, #entity.drop_on_destroy)
+
+				if i ~= j then
+					minetest.add_item(pos, entity.drop_on_destroy[i])
+					minetest.add_item(pos, entity.drop_on_destroy[j])
+				else
+					minetest.add_item(pos, entity.drop_on_destroy[i])
+				end
+
 				entity.removed = true
 				-- delay remove to ensure player is detached
 				minetest.after(0.1, function()
