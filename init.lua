@@ -16,11 +16,6 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 	  USA
-
------------------------------------------------------------------------------
-
-Dependencies: default, player_api (both included in Minetest Game)
-Optional dependencies: mobs
 --]]
 
 lib_mount = {
@@ -399,15 +394,19 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				end
 				local pos = entity.object:get_pos()
 
-				-- Handle drops
+				------------------
+				-- Handle drops --
+				------------------
+
+				-- `entity.drop_on_destory` is table which stores all the items that will be dropped on destroy.
+				-- It will drop one of those items, from `1` to the length, or the end of the table.
+
 				local i = math.random(1, #entity.drop_on_destroy)
 				local j = math.random(2, #entity.drop_on_destroy)
 
+				minetest.add_item(pos, entity.drop_on_destroy[i])
 				if i ~= j then
-					minetest.add_item(pos, entity.drop_on_destroy[i])
 					minetest.add_item(pos, entity.drop_on_destroy[j])
-				else
-					minetest.add_item(pos, entity.drop_on_destroy[i])
 				end
 
 				entity.removed = true
