@@ -210,7 +210,7 @@ end
 
 local aux_timer = 0
 
-function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly)
+function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly, can_go_down, can_go_up)
 	aux_timer = aux_timer + dtime
 
 	if can_fly and can_fly == true then
@@ -264,13 +264,13 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				velo.y = velo.y + (jump_height * 3) + 1
 				acce_y = acce_y + (acce_y * 3) + 1
 			end
-			if can_fly and can_fly == true then
+			if can_go_down and can_go_up and can_fly and can_fly == true then
 				velo.y = velo.y + 1
 				acce_y = acce_y + 1
 			end
 		end
 		if ctrl.sneak then
-			if can_fly and can_fly == true then
+			if can_go_down and can_go_up and can_fly and can_fly == true then
 				velo.y = velo.y - 1
 				acce_y = acce_y - 1
 			end
