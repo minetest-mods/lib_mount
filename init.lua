@@ -22,8 +22,7 @@ lib_mount = {
 	passengers = {}
 }
 
-local enable_crash = true
-local crash_threshold = 6.5		-- ignored if enable_crash=false
+local crash_threshold = 6.5		-- ignored if enable_crash is disabled
 
 ------------------------------------------------------------------------------
 
@@ -210,7 +209,7 @@ end
 
 local aux_timer = 0
 
-function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly, can_go_down, can_go_up)
+function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly, can_go_down, can_go_up, enable_crash)
 	aux_timer = aux_timer + dtime
 
 	if can_fly and can_fly == true then
