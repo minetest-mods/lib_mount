@@ -1,6 +1,8 @@
 --[[
-    An API framework for mounting objects.
-    Copyright (C) 2016-2020 blert2112 and David Leal (halfpacho@gmail.com)
+	An API framework for mounting objects.
+
+	Copyright (C) 2016 blert2112 and contributors
+	Copyright (C) 2019-2021 David Leal (halfpacho@gmail.com) and contributors
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
