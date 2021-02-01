@@ -212,6 +212,19 @@ end
 local aux_timer = 0
 
 function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly, can_go_down, can_go_up, enable_crash)
+	-- Sanity checks
+	if entity.driver and not entity.driver:get_attach() then entity.driver = nil end
+
+	if entity.passenger and not entity.passenger:get_attach() then
+		entity.passenger = nil
+	end
+	if entity.passenger2 and not entity.passenger2:get_attach() then
+		entity.passenger2 = nil
+	end
+	if entity.passenger3 and not entity.passenger3:get_attach() then
+		entity.passenger3 = nil
+	end
+
 	aux_timer = aux_timer + dtime
 
 	if can_fly and can_fly == true then
