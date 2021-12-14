@@ -479,7 +479,6 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 					drvr:set_velocity(new_velo)
 					drvr:set_hp(drvr:get_hp() - intensity)
 				end
-				
 				ensure_passengers_exists(entity)-- Legacy support
 				for _,passenger in ipairs(entity.passengers) do
 					if passenger.player then
