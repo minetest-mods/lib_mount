@@ -112,7 +112,12 @@ end
 -- Copies the specified passenger to the older api. Note that this is one-directional.
 -- If something changed in the old api before this is called it is lost.
 -- In code you control be sure to always use the newer API and to call this function on every change.
+-- If you would like to improove preformance (memory & CPU) by not updating the old API, set
+--  entity.dont_use_old_passenger_api to true. This will return from the funciton instead of doing anything.
 local function copy_a_passenger_to_old_api(entity,index,player,attach,eye)
+	if entity.dont_use_old_passenger_api then
+		return
+	end
 	ensure_passengers_exists(entity)
 	if index==1 then  -- Don't forget! Lua indexes start at 1
 		if player then
