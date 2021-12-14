@@ -78,25 +78,36 @@ local function get_v(v)
 end
 
 local function ensure_passengers_exists(entity)
-	if entity.passengers == nil then  -- Does this properly handle an empty list?
-		entity.passengers={
-			{
+	if entity.passengers == nil then
+		entity.passengers = {}
+		if (not(entity.passenger == nil)) or
+			(not(entity.passenger_attach_at == nil)) or
+			(not(entity.passenger_eye_offset == nil)) then
+			table.insert(entity.passengers,{
 				player=entity.passenger,
-				attach_at=entity.passenger_attach_at
+				attach_at=entity.passenger_attach_at,
 				eye_offset=entity.passenger_eye_offset
-			},
-			{
-				player=entity.passenger2,
-				attach_at=entity.passenger2_attach_at
-				eye_offset=entity.passenger2_eye_offset
-			},
-			{
-				player=entity.passenger3,
-				attach_at=entity.passenger3_attach_at
-				eye_offset=entity.passenger3_eye_offset
-			},
-		}
-	then
+			})
+			if (not(entity.passenger2 == nil)) or
+				(not(entity.passenger2_attach_at == nil)) or
+				(not(entity.passenger2_eye_offset == nil)) then
+				table.insert(entity.passengers,{
+					player=entity.passenger2,
+					attach_at=entity.passenger2_attach_at,
+					eye_offset=entity.passenger2_eye_offset
+				})
+				if (not(entity.passenger3 == nil)) or
+					(not(entity.passenger3_attach_at == nil)) or
+					(not(entity.passenger3_eye_offset == nil)) then
+					table.insert(entity.passengers,{
+						player=entity.passenger3,
+						attach_at=entity.passenger3_attach_at,
+						eye_offset=entity.passenger3_eye_offset
+					})
+				end
+			end
+		end
+	end
 end
 -- Copies the specified passenger to the older api. Note that this is one-directional.
 -- If something changed in the old api before this is called it is lost.
@@ -105,33 +116,33 @@ local function copy_a_passenger_to_old_api(entity,index,player,attach,eye)
 	ensure_passengers_exists(entity)
 	if index==1 then  -- Don't forget! Lua indexes start at 1
 		if player then
-			entity.passenger = entity.passenger[index].player
+			entity.passenger = entity.passengers[index].player
 		end
 		if attach then
-			entity.passenger_attach_at = entity.passenger[index].attach_at
+			entity.passenger_attach_at = entity.passengers[index].attach_at
 		end
 		if eye then
-			entity.passenger_eye_offset = entity.passenger[index].eye_offset
+			entity.passenger_eye_offset = entity.passengers[index].eye_offset
 		end
 	elseif index==2 then
 		if player then
-			entity.passenger2 = entity.passenger[index].player
+			entity.passenger2 = entity.passengers[index].player
 		end
 		if attach then
-			entity.passenger2_attach_at = entity.passenger[index].attach_at
+			entity.passenger2_attach_at = entity.passengers[index].attach_at
 		end
 		if eye then
-			entity.passenger2_eye_offset = entity.passenger[index].eye_offset
+			entity.passenger2_eye_offset = entity.passengers[index].eye_offset
 		end
 	elseif index==3 then
 		if player then
-			entity.passenger3 = entity.passenger[index].player
+			entity.passenger3 = entity.passengers[index].player
 		end
 		if attach then
-			entity.passenger3_attach_at = entity.passenger[index].attach_at
+			entity.passenger3_attach_at = entity.passengers[index].attach_at
 		end
 		if eye then
-			entity.passenger3_eye_offset = entity.passenger[index].eye_offset
+			entity.passenger3_eye_offset = entity.passengers[index].eye_offset
 		end
 	end
 end
@@ -144,7 +155,7 @@ local function force_detach(player)
 			entity.driver = nil
 		else
 			ensure_passengers_exists(entity)
-			for i,passenger in ipairs(entity.passengers) then
+			for i,passenger in ipairs(entity.passengers) do
 				if passenger.player == player then -- If it's nil it won't match
 					entity.passengers[i].player = nil -- This maintains the behavior where you could have passenger 1 leave but passenger 2 is still there, and they don't move
 					lib_mount.passengers[player] = nil
@@ -202,12 +213,12 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 		-- Legacy support
 		ensure_passengers_exists(entity)
 
-		attach_updated=false
+		local attach_updated=false
 		if not entity.passengers[passenger_number].attach_at then
 			entity.passengers[passenger_number].attach_at = {x=0, y=0, z=0}
 			attach_updated=true
 		end
-		eye_updated=false
+		local eye_updated=false
 		if not entity.passengers[passenger_number].eye_offset then
 			entity.passengers[passenger_number].eye_offset = {x=0, y=0, z=0}
 			eye_updated=true
@@ -262,7 +273,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 
 	-- Legacy support
 	ensure_passengers_exists(entity)
-	for i,passenger in ipairs(entity.passengers) then
+	for i,passenger in ipairs(entity.passengers) do
 		if passenger.player and not passenger.player:get_attach() then
 			entity.passengers[i].player = nil
 			-- Legacy support
@@ -470,7 +481,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				end
 				
 				ensure_passengers_exists(entity)-- Legacy support
-				for i,passenger in ipairs(entity.passengers) then
+				for _,passenger in ipairs(entity.passengers) do
 					if passenger.player then
 						local pass = passenger.player
 						lib_mount.detach(pass, {x=0, y=0, z=0})  -- This function already copies to old API
