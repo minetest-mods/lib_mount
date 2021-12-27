@@ -78,35 +78,40 @@ local function get_v(v)
 end
 
 local function ensure_passengers_exists(entity)
-	if entity.passengers == nil then
-		entity.passengers = {}
-		if (not(entity.passenger == nil)) or
-			(not(entity.passenger_attach_at == nil)) or
-			(not(entity.passenger_eye_offset == nil)) then
-			table.insert(entity.passengers,{
-				player=entity.passenger,
-				attach_at=entity.passenger_attach_at,
-				eye_offset=entity.passenger_eye_offset
-			})
-			if (not(entity.passenger2 == nil)) or
-				(not(entity.passenger2_attach_at == nil)) or
-				(not(entity.passenger2_eye_offset == nil)) then
-				table.insert(entity.passengers,{
-					player=entity.passenger2,
-					attach_at=entity.passenger2_attach_at,
-					eye_offset=entity.passenger2_eye_offset
-				})
-				if (not(entity.passenger3 == nil)) or
-					(not(entity.passenger3_attach_at == nil)) or
-					(not(entity.passenger3_eye_offset == nil)) then
-					table.insert(entity.passengers,{
-						player=entity.passenger3,
-						attach_at=entity.passenger3_attach_at,
-						eye_offset=entity.passenger3_eye_offset
-					})
-				end
-			end
-		end
+	if entity.passengers ~= nil then
+		return
+	end
+	entity.passengers = {}
+	if (not(entity.passenger == nil)) or
+		(not(entity.passenger_attach_at == nil)) or
+		(not(entity.passenger_eye_offset == nil)) then
+		table.insert(entity.passengers,{
+			player=entity.passenger,
+			attach_at=entity.passenger_attach_at,
+			eye_offset=entity.passenger_eye_offset
+		})
+	else
+		return
+	end
+	if (not(entity.passenger2 == nil)) or
+		(not(entity.passenger2_attach_at == nil)) or
+		(not(entity.passenger2_eye_offset == nil)) then
+		table.insert(entity.passengers,{
+			player=entity.passenger2,
+			attach_at=entity.passenger2_attach_at,
+			eye_offset=entity.passenger2_eye_offset
+		})
+	else
+		return
+	end
+	if (not(entity.passenger3 == nil)) or
+		(not(entity.passenger3_attach_at == nil)) or
+		(not(entity.passenger3_eye_offset == nil)) then
+		table.insert(entity.passengers,{
+			player=entity.passenger3,
+			attach_at=entity.passenger3_attach_at,
+			eye_offset=entity.passenger3_eye_offset
+		})
 	end
 end
 -- Copies the specified passenger to the older api. Note that this is one-directional.
