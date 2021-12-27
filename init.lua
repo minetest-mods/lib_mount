@@ -82,9 +82,9 @@ local function ensure_passengers_exists(entity)
 		return
 	end
 	entity.passengers = {}
-	if (not(entity.passenger == nil)) or
-		(not(entity.passenger_attach_at == nil)) or
-		(not(entity.passenger_eye_offset == nil)) then
+	if entity.passenger ~= nil or
+		entity.passenger_attach_at ~= nil or
+		entity.passenger_eye_offset ~= nil then
 		table.insert(entity.passengers,{
 			player=entity.passenger,
 			attach_at=entity.passenger_attach_at,
@@ -93,9 +93,9 @@ local function ensure_passengers_exists(entity)
 	else
 		return
 	end
-	if (not(entity.passenger2 == nil)) or
-		(not(entity.passenger2_attach_at == nil)) or
-		(not(entity.passenger2_eye_offset == nil)) then
+	if entity.passenger2 ~= nil or
+		entity.passenger2_attach_at ~= nil or
+		entity.passenger2_eye_offset ~= nil then
 		table.insert(entity.passengers,{
 			player=entity.passenger2,
 			attach_at=entity.passenger2_attach_at,
@@ -104,9 +104,9 @@ local function ensure_passengers_exists(entity)
 	else
 		return
 	end
-	if (not(entity.passenger3 == nil)) or
-		(not(entity.passenger3_attach_at == nil)) or
-		(not(entity.passenger3_eye_offset == nil)) then
+	if entity.passenger3 ~= nil or
+		entity.passenger3_attach_at ~= nil or
+		entity.passenger3_eye_offset ~= nil then
 		table.insert(entity.passengers,{
 			player=entity.passenger3,
 			attach_at=entity.passenger3_attach_at,
