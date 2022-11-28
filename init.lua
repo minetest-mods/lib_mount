@@ -266,7 +266,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				entity.object:set_yaw(entity.object:get_yaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
 			end
 		else
-			entity.object:set_yaw(entity.driver:get_look_yaw() + math.rad(90))
+			entity.object:set_yaw(entity.driver:get_look_horizontal() + math.rad(90))
 		end
 		if ctrl.jump then
 			if jump_height > 0 and velo.y == 0 then
