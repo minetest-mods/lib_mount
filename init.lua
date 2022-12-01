@@ -119,7 +119,7 @@ end
 -- In code you control be sure to always use the newer API and to call this function on every change.
 -- If you would like to improove preformance (memory & CPU) by not updating the old API, set
 --  entity.dont_use_old_passenger_api to true. This will return from the funciton instead of doing anything.
-local function copy_a_passenger_to_old_api(entity,index,player,attach,eye)
+local function old_copy_passenger(entity,index,player,attach,eye)
 	if entity.dont_use_old_passenger_api then
 		return
 	end
@@ -171,7 +171,7 @@ local function force_detach(player)
 					lib_mount.passengers[player] = nil
 
 					-- Legacy support
-					copy_a_passenger_to_old_api(entity,i,true,false,false)
+					old_copy_passenger(entity,i,true,false,false)
 
 					break -- No need to continue looping. We found them.
 				end
@@ -241,7 +241,7 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 		lib_mount.passengers[player] = player
 
 		-- Legacy support
-		copy_a_passenger_to_old_api(entity,passenger_number,true,attach_updated,eye_updated)
+		old_copy_passenger(entity,passenger_number,true,attach_updated,eye_updated)
 	else
 		if not entity.driver_attach_at then
 			entity.driver_attach_at = {x=0, y=0, z=0}
@@ -287,7 +287,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 		if passenger.player and not passenger.player:get_attach() then
 			entity.passengers[i].player = nil
 			-- Legacy support
-			copy_a_passenger_to_old_api(entity,i,true,false,false)
+			old_copy_passenger(entity,i,true,false,false)
 		end
 	end
 
