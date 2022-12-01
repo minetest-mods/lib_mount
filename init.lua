@@ -118,9 +118,9 @@ end
 -- If something changed in the old api before this is called it is lost.
 -- In code you control be sure to always use the newer API and to call this function on every change.
 -- If you would like to improove preformance (memory & CPU) by not updating the old API, set
---  entity.dont_use_old_passenger_api to true. This will return from the funciton instead of doing anything.
+--  entity.new_api to true. This will return from the funciton instead of doing anything.
 local function old_copy_passenger(entity,index,player,attach,eye)
-	if entity.dont_use_old_passenger_api then
+	if entity.new_api then
 		return
 	end
 	ensure_passengers_exists(entity)
