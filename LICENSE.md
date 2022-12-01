@@ -1,5 +1,5 @@
 Copyright (C) 2016 blert2112 and contributors\
-Copyright (C) 2019-2021 Panquesito7 (halfpacho@gmail.com) and contributors
+Copyright (C) 2019-2022 Panquesito7 (halfpacho@gmail.com) and contributors
 
                  GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999

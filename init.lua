@@ -2,7 +2,7 @@
 	An API framework for mounting objects.
 
 	Copyright (C) 2016 blert2112 and contributors
-	Copyright (C) 2019-2021 David Leal (halfpacho@gmail.com) and contributors
+	Copyright (C) 2019-2022 David Leal (halfpacho@gmail.com) and contributors
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -214,11 +214,6 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 		entity.player_rotation = {x=0, y=0, z=0}
 	end
 
-	local rot_view = 0
-	if entity.player_rotation.y == 90 then
-		rot_view = math.pi/2
-	end
-
 	if is_passenger == true then
 		-- Legacy support
 		ensure_passengers_exists(entity)
@@ -262,7 +257,7 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 	minetest.after(0.2, function()
 		player_api.set_animation(player, "sit", 30)
 	end)
-	player:set_look_horizontal(entity.object:get_yaw() - rot_view)
+	player:set_look_horizontal(entity.object:get_yaw() + math.rad(90))
 end
 
 function lib_mount.detach(player, offset)
@@ -297,9 +292,9 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 		jump_height = 0
 	end
 
-	local rot_steer, rot_view = math.pi/2, 0
+	local rot_steer, rot_view = math.pi/2, 0 -- luacheck: ignore
 	if entity.player_rotation.y == 90 then
-		rot_steer, rot_view = 0, math.pi/2
+		rot_steer, rot_view = 0, math.pi/2 -- luacheck: ignore
 	end
 
 	local acce_y = 0
@@ -337,7 +332,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				entity.object:set_yaw(entity.object:get_yaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
 			end
 		else
-			entity.object:set_yaw(entity.driver:get_look_yaw() - rot_steer)
+			entity.object:set_yaw(entity.driver:get_look_horizontal() + math.rad(90))
 		end
 		if ctrl.jump then
 			if jump_height > 0 and velo.y == 0 then
