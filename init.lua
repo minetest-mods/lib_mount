@@ -521,3 +521,11 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 
 	entity.v2 = v
 end
+
+-- Print after the mod was loaded successfully
+local load_message = "[MOD] Library Mount loaded!"
+if minetest.log then
+	minetest.log("info", load_message) -- Aims at state of the MT software art
+else
+	print(load_message)  -- Aims at legacy MT software used in the field
+end
