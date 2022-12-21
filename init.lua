@@ -521,3 +521,6 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 
 	entity.v2 = v
 end
+
+-- print to log after mod was loaded successfully
+print ("[MOD] Library Mount loaded")
