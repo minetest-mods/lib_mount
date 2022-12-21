@@ -523,9 +523,9 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 end
 
 -- print to log after mod was loaded successfully
-local load-message = "[MOD] Library Mount loaded"
+local load_message = "[MOD] Library Mount loaded"
 if minetest.log then
-	minetest.log("info", load-message)
+	minetest.log("info", load_message) -- aims at state of the art MT software
 else
-	print (load-message)  -- aims at legacy MT software used in the field
+	print (load_message)  -- aims at legacy MT software used in the field
 end
