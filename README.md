@@ -3,11 +3,10 @@
 Made by [blert2112](https://github.com/blert2112).\
 Handed over to [Panquesito7](https://github.com/Panquesito7).
 
-Current version: 1.3
+Current version: 1.4
 
 ## Dependencies
 
-- `default` (included in [Minetest Game](https://github.com/minetest/minetest_game))
 - `player_api` (included in [Minetest Game](https://github.com/minetest/minetest_game))
 
 ### Optional dependencies
