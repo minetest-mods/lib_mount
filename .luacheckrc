@@ -1,6 +1,6 @@
 unused_args = false
 allow_defined_top = true
-max_line_length = 999
+max_line_length = false
 
 globals = {
     "lib_mount", "player_api",
@@ -13,5 +13,5 @@ read_globals = {
     "minetest", "mobs",
 }
 
-files["init.lua"].ignore = { "eye_offset", "attach_at", 
+files["init.lua"].ignore = { "eye_offset", "attach_at",
     "set_animation", "new_velo" }
