@@ -21,7 +21,7 @@
 --]]
 
 lib_mount = {
-	passengers = {}
+	passengers = { }
 }
 
 local crash_threshold = 6.5		-- ignored if enable_crash is disabled
@@ -272,7 +272,7 @@ end
 
 local aux_timer = 0
 
-function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly, can_go_down, can_go_up, enable_crash)
+function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_height, can_fly, can_go_down, can_go_up, enable_crash, moveresult)
 	-- Sanity checks
 	if entity.driver and not entity.driver:get_attach() then entity.driver = nil end
 
@@ -332,7 +332,33 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				entity.object:set_yaw(entity.object:get_yaw()-get_sign(entity.v)*math.rad(1+dtime)*entity.turn_spd)
 			end
 		else
-			entity.object:set_yaw(entity.driver:get_look_horizontal() + math.rad(90))
+			if minetest.settings:get_bool("lib_mount.limited_turn_speed") then
+				-- WIP and may contain bugs.
+				local yaw = entity.object:get_yaw()
+				local yaw_delta = entity.driver:get_look_horizontal() - yaw + math.rad(90)
+				if yaw_delta > math.pi then
+					yaw_delta = yaw_delta - math.pi * 2
+				elseif yaw_delta < - math.pi then
+					yaw_delta = yaw_delta + math.pi * 2
+				end
+
+				local yaw_sign = get_sign(yaw_delta)
+				if yaw_sign == 0 then
+					yaw_sign = 1
+				end
+
+				yaw_delta = math.abs(yaw_delta)
+				if yaw_delta > math.pi / 2 then
+					yaw_delta = math.pi / 2
+				end
+
+				local yaw_speed = yaw_delta * entity.turn_spd
+				yaw_speed = yaw_speed * dtime
+
+				entity.object:set_yaw(yaw + yaw_sign*yaw_speed)
+			else
+				entity.object:set_yaw(entity.driver:get_look_horizontal() + math.rad(90))
+			end
 		end
 		if ctrl.jump then
 			if jump_height > 0 and velo.y == 0 then

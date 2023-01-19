@@ -1,0 +1,1 @@
+lib_mount.limited_turn_speed (If enabled, mouselook speed will be limited to the entity's given value) bool false
