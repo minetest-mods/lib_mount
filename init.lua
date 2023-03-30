@@ -335,7 +335,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 			if minetest.settings:get_bool("lib_mount.limited_turn_speed") then
 				-- WIP and may contain bugs.
 				local yaw = entity.object:get_yaw()
-				local yaw_delta = entity.driver:get_look_horizontal() - yaw + math.rad(90)
+				local yaw_delta = entity.driver:get_look_horizontal() + math.rad(entity.player_rotation.y or 90)
 				if yaw_delta > math.pi then
 					yaw_delta = yaw_delta - math.pi * 2
 				elseif yaw_delta < - math.pi then
@@ -357,7 +357,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 
 				entity.object:set_yaw(yaw + yaw_sign*yaw_speed)
 			else
-				entity.object:set_yaw(entity.driver:get_look_horizontal() + math.rad(90))
+				entity.object:set_yaw(entity.driver:get_look_horizontal() + math.rad(entity.player_rotation.y or 90))
 			end
 		end
 		if ctrl.jump then
