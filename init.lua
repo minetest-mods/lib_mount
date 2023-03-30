@@ -257,7 +257,7 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 	minetest.after(0.2, function()
 		player_api.set_animation(player, "sit", 30)
 	end)
-	player:set_look_horizontal(entity.object:get_yaw() + math.rad(90))
+	player:set_look_horizontal(entity.object:get_yaw() + math.rad(entity.player_rotation.y or 90))
 end
 
 function lib_mount.detach(player, offset)
@@ -335,7 +335,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 			if minetest.settings:get_bool("lib_mount.limited_turn_speed") then
 				-- WIP and may contain bugs.
 				local yaw = entity.object:get_yaw()
-				local yaw_delta = entity.driver:get_look_horizontal() + math.rad(entity.player_rotation.y or 90)
+				local yaw_delta = entity.driver:get_look_horizontal() - yaw + math.rad(entity.player_rotation.y or 90)
 				if yaw_delta > math.pi then
 					yaw_delta = yaw_delta - math.pi * 2
 				elseif yaw_delta < - math.pi then
