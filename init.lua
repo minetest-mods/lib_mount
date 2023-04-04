@@ -2,7 +2,7 @@
 	An API framework for mounting objects.
 
 	Copyright (C) 2016 blert2112 and contributors
-	Copyright (C) 2019-2022 David Leal (halfpacho@gmail.com) and contributors
+	Copyright (C) 2019-2023 David Leal (halfpacho@gmail.com) and contributors
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -70,7 +70,7 @@ end
 local function get_velocity(v, yaw, y)
 	local x = -math.sin(yaw) * v
 	local z =  math.cos(yaw) * v
-	return {x = x, y = y, z = z}
+	return vector.new(x, y, z)
 end
 
 local function get_v(v)
@@ -179,7 +179,7 @@ local function force_detach(player)
 		end
 		player:set_detach()
 		player_api.player_attached[player:get_player_name()] = false
-		player:set_eye_offset({x=0, y=0, z=0}, {x=0, y=0, z=0})
+		player:set_eye_offset(vector.new(0,0,0), vector.new(0,0,0))
 	end
 end
 
@@ -211,7 +211,7 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 	end
 
 	if not entity.player_rotation then
-		entity.player_rotation = {x=0, y=0, z=0}
+		entity.player_rotation = vector.new(0,0,0)
 	end
 
 	if is_passenger == true then
@@ -220,12 +220,12 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 
 		local attach_updated=false
 		if not entity.passengers[passenger_number].attach_at then
-			entity.passengers[passenger_number].attach_at = {x=0, y=0, z=0}
+			entity.passengers[passenger_number].attach_at = vector.new(0,0,0)
 			attach_updated=true
 		end
 		local eye_updated=false
 		if not entity.passengers[passenger_number].eye_offset then
-			entity.passengers[passenger_number].eye_offset = {x=0, y=0, z=0}
+			entity.passengers[passenger_number].eye_offset = vector.new(0,0,0)
 			eye_updated=true
 		end
 
@@ -239,10 +239,10 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 		old_copy_passenger(entity,passenger_number,true,attach_updated,eye_updated)
 	else
 		if not entity.driver_attach_at then
-			entity.driver_attach_at = {x=0, y=0, z=0}
+			entity.driver_attach_at = vector.new(0,0,0)
 		end
 		if not entity.driver_eye_offset then
-			entity.driver_eye_offset = {x=0, y=0, z=0}
+			entity.driver_eye_offset = vector.new(0,0,0)
 		end
 		attach_at = entity.driver_attach_at
 		eye_offset = entity.driver_eye_offset
@@ -253,7 +253,7 @@ function lib_mount.attach(entity, player, is_passenger, passenger_number)
 
 	player:set_attach(entity.object, "", attach_at, entity.player_rotation)
 	player_api.player_attached[player:get_player_name()] = true
-	player:set_eye_offset(eye_offset, {x=0, y=0, z=0})
+	player:set_eye_offset(eye_offset, vector.new(0,0,0))
 	minetest.after(0.2, function()
 		player_api.set_animation(player, "sit", 30)
 	end)
@@ -399,7 +399,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 	local s = get_sign(entity.v)
 	entity.v = entity.v - 0.02 * s
 	if s ~= get_sign(entity.v) then
-		entity.object:set_velocity({x=0, y=0, z=0})
+		entity.object:set_velocity(vector.new(0,0,0))
 		entity.v = 0
 		return
 	end
@@ -411,12 +411,12 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 		velo.y = velo.y - 0.02 * s2
 		acce_y = acce_y - 0.02 * s3
 		if s2 ~= get_sign(velo.y) then
-			entity.object:set_velocity({x=0, y=0, z=0})
+			entity.object:set_velocity(vector.new(0,0,0))
 			velo.y = 0
 			return
 		end
 		if s3 ~= get_sign(acce_y) then
-			entity.object:set_velocity({x=0, y=0, z=0})
+			entity.object:set_velocity(vector.new(0,0,0))
 			acce_y = 0 -- luacheck: ignore
 			return
 		end
@@ -452,8 +452,8 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 
 	-- Set position, velocity and acceleration
 	local p = entity.object:get_pos()
-	local new_velo = {x=0, y=0, z=0}
-	local new_acce = {x=0, y=-9.8, z=0}
+	local new_velo = vector.new(0,0,0)
+	local new_acce = vector.new(0,-9.8,0)
 
 	p.y = p.y - 0.5
 	local ni = node_is(p)
@@ -506,7 +506,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 			else
 				if entity.driver then
 					local drvr = entity.driver
-					lib_mount.detach(drvr, {x=0, y=0, z=0})
+					lib_mount.detach(drvr, vector.new(0,0,0))
 					drvr:set_velocity(new_velo)
 					drvr:set_hp(drvr:get_hp() - intensity)
 				end
@@ -514,7 +514,7 @@ function lib_mount.drive(entity, dtime, is_mob, moving_anim, stand_anim, jump_he
 				for _,passenger in ipairs(entity.passengers) do
 					if passenger.player then
 						local pass = passenger.player
-						lib_mount.detach(pass, {x=0, y=0, z=0})  -- This function already copies to old API
+						lib_mount.detach(pass, vector.new(0,0,0))  -- This function already copies to old API
 						pass:set_velocity(new_velo)
 						pass:set_hp(pass:get_hp() - intensity)
 					end
