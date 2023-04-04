@@ -10,7 +10,7 @@ read_globals = {
     string = {fields = {"split", "trim"}},
     table = {fields = {"copy", "getn"}},
 
-    "minetest", "mobs",
+    "minetest", "mobs", "vector",
 }
 
 files["init.lua"].ignore = { "eye_offset", "attach_at",
