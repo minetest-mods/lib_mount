@@ -21,7 +21,7 @@ Current version: 1.4
 ## License
 
 Copyright (C) 2016 blert2112 and contributors\
-Copyright (C) 2019-2022 Panquesito7 (halfpacho@gmail.com) and contributors
+Copyright (C) 2019-2023 Panquesito7 (halfpacho@gmail.com) and contributors
 
 Based on the Boats mod by [PilzAdam](https://github.com/PilzAdam).\
 See [`LICENSE.md`](LICENSE.md) for information.
